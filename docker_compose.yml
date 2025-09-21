@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  streaming_api:
+    build:
+      context: .
+    image: chatterbox-streaming:latest
+    container_name: chatterbox-streaming-api
+    ports:
+      - "8000:8000"
+    environment:
+      HF_HOME: /root/.cache/huggingface
+      TORCH_HOME: /root/.cache/torch
+      TRANSFORMERS_CACHE: /root/.cache/huggingface
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+      - torch_cache:/root/.cache/torch
+    restart: unless-stopped
+    command: ["uvicorn", "chatterbox.streaming_api:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  huggingface_cache:
+  torch_cache:
