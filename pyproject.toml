@@ -22,6 +22,8 @@ dependencies = [
     "pkuseg ==0.0.25",
     "pykakasi==2.3.0",
     "gradio==5.44.1",
+    "fastapi==0.115.4",
+    "uvicorn[standard]==0.32.0",
 
 ]
 

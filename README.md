@@ -87,6 +87,58 @@ ta.save("test-2.wav", wav, model.sr)
 ```
 See `example_tts.py` and `example_vc.py` for more examples.
 
+## Streaming API
+
+Chatterbox now ships with a lightweight FastAPI server that lets a locally
+hosted LLM stream partial generations directly into the TTS engine and receive
+chunked audio in response. The server lives at
+`chatterbox.streaming_api:app`.
+
+### Run the server
+
+```bash
+uvicorn chatterbox.streaming_api:app --host 0.0.0.0 --port 8000
+```
+
+### Run with Docker Compose
+
+To launch the streaming server inside a container, build the provided image
+and start the service with Docker Compose:
+
+```bash
+docker compose -f docker_compose.yml up --build
+```
+
+The compose file publishes port `8000` and persists model downloads in named
+volumes so subsequent runs reuse cached checkpoints. Add `-d` to the command
+to run the service in the background. For GPU acceleration, install the
+[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+and follow Docker's [GPU configuration guidance](https://docs.docker.com/compose/gpu-support/)
+to expose your hardware to the container.
+
+### Endpoints
+
+- `POST /api/v1/sessions`
+  - Body: `{ "multilingual": false, "buffer_until_punctuation": true, ... }`
+  - Creates a session and returns the `session_id`, sample rate, and buffering
+    mode.
+- `POST /api/v1/sessions/{session_id}/stream`
+  - Body: `{ "tokens": ["Hello", " world"], "is_final": false }`
+  - Streams the provided tokens into the session. When buffering is enabled the
+    server waits for punctuation before speaking; otherwise each request is
+    synthesized immediately. The response is an `audio/wav` streaming response
+    that emits PCM chunks as they are produced.
+- `POST /api/v1/sessions/{session_id}/buffer`
+  - Body: `{ "enabled": true }`
+  - Toggles the punctuation buffering switch on the fly.
+- `DELETE /api/v1/sessions/{session_id}`
+  - Closes the session and frees its resources.
+
+Set `buffer_until_punctuation` to `false` during session creation (or toggle it
+off later) to synthesize every token chunk immediately without waiting for
+sentence boundaries. Send `"is_final": true` with the last chunk to flush any
+remaining buffered text.
+
 # Acknowledgements
 - [Cosyvoice](https://github.com/FunAudioLLM/CosyVoice)
 - [Real-Time-Voice-Cloning](https://github.com/CorentinJ/Real-Time-Voice-Cloning)
